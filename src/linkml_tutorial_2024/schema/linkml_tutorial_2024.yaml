@@ -1,20 +1,25 @@
 ---
-id: https://w3id.org/sdmiller93-nist/linkml-tutorial-2024
+id: https://w3id.org/linkml/linkml-tutorial-2024
 name: linkml-tutorial-2024
 title: linkml-tutorial-2024
 description: |-
-  This is the LinkML tutorial project from ISMB 2024
+  A repostitory that walks through schema generation.
 license: MIT
 see_also:
-  - https://sdmiller93-nist.github.io/linkml-tutorial-2024
+  - https://linkml.github.io/linkml-tutorial-2024
 
 prefixes:
-  linkml_tutorial_2024: https://w3id.org/sdmiller93-nist/linkml-tutorial-2024/
+  linkml_tutorial_2024: https://w3id.org/linkml/linkml-tutorial-2024/
   linkml: https://w3id.org/linkml/
   biolink: https://w3id.org/biolink/
   schema: http://schema.org/
   PATO: http://purl.obolibrary.org/obo/PATO_
   example: https://example.org/
+  obo: http://purl.obolibrary.org/obo/
+  ENVO: http://purl.obolibrary.org/obo/ENVO_
+  SIO: http://semanticscience.org/resource/
+  nmdc: https://w3id.org/nmdc/
+  KBase: https://kbase.us/
 default_prefix: linkml_tutorial_2024
 default_range: string
 
@@ -23,74 +28,123 @@ imports:
 
 classes:
 
-  NamedThing:
-    description: >-
-      A generic grouping for any identifiable entity
+  SampleCollection:
+    description: 
+      A collection of samples.
+    slots:
+      - samples
+    tree_root: true
+
+  Sample:
+    aliases: ["Biosample", "Environmental Sample"]
+    description:  
+      A sample is a limited quantity of something (e.g. an individual or set of individuals from a population, 
+      or a portion of a substance) to be used for testing, analysis, inspection, investigation, demonstration, 
+      or trial use.
     slots:
       - id
-      - name
-      - description
-    class_uri: schema:Thing
+      - latitude
+      - longitude
+      - species
+      - sample_biome
+      - sample_type
+    id_prefixes:
+      - KBase
+      - nmdc
+    exact_mappings:
+      - SIO:001050
+    class_uri: SIO:001050
 
-  Person:
-    is_a: NamedThing
-    description: >-
-      Represents a Person
+  AirSample:
+    description: 
+      A sample of air
+    is_a: Sample
     slots:
-      - primary_email
-      - birth_date
-      - age_in_years
-      - vital_status
+      - altitude
     slot_usage:
-      primary_email:
-        pattern: "^\\S+@[\\S+\\.]+\\S+"
+      id:
+        pattern: '^airsample:\d*'   ## regular expression for the id
 
-  PersonCollection:
-    tree_root: true
-    description: >-
-      A holder for Person objects
-    attributes:
-      entries:
-        range: Person
-        multivalued: true
-        inlined: true
+
+  SoilSample:
+    description: 
+      A sample of soil
+    is_a: Sample
+    slots:
+      - depth
+    slot_usage:
+        id:
+          pattern: '^soilsample:\d*'   ## regular expression for the id
 
 slots:
-  id:
-    identifier: true
-    slot_uri: schema:identifier
-    range: uriorcurie
-    description: A unique identifier for a thing
-  name:
-    slot_uri: schema:name
-    description: A human-readable name for a thing
-  description:
-    slot_uri: schema:description
-    description: A human-readable description for a thing
-  primary_email:
-    slot_uri: schema:email
-    description: The main email address of a person
-  birth_date:
-    slot_uri: schema:birthDate
-    range: date
-    description: Date on which a person is born
-  age_in_years:
-    range: integer
-    description: Number of years since birth
-  vital_status:
-    range: PersonStatus
-    description: living or dead status
+    id:
+        description: 
+          The unique identifier for the biosample.
+        required: true
+        identifier: true
+        range: string
+    altitude:
+        description: 
+          Altitude is the height of an object or point in relation to a specific reference point, such as the sea level.
+        range: float
+    latitude:
+        description: 
+          Latitude is a geographic coordinate which refers to the angle from a point on the Earth's surface to the 
+          equatorial plane.
+        range: float
+        minimum_value: -90
+        maximum_value: 90
+        slot_uri: schema:latitude
+    longitude:
+        description: 
+          Longitude is a geographic position that refers to the angle east or west of a reference meridian between the 
+          two geographical poles to another meridian that passes through an arbitrary point.
+        range: float
+        slot_uri: schema:longitude
+    species:
+        description: 
+          The species of micro organisms collected in the sample.
+        range: SpeciesEnum
+        multivalued: true
+    depth:
+        description: 
+          The depth in centimeters of the biosample.
+        range: integer
+    sample_biome:
+        description: 
+          The biome type of the biosample
+        range: BiomeTypeEnum
+    samples:
+        description: 
+          The samples in the collection.
+        range: Sample
+        multivalued: true
+        inlined: true
+    sample_type:
+      designates_type: true
+      description: 
+          The type of sample.
 
 enums:
-  PersonStatus:
-    permissible_values:
-      ALIVE:
-        description: the person is living
-        meaning: PATO:0001421
-      DEAD:
-        description: the person is deceased
-        meaning: PATO:0001422
-      UNKNOWN:
-        description: the vital status is not known
-        todos:
-          - map this to an ontology
+    BiomeTypeEnum:
+        description: 
+          The type of biome.
+        permissible_values:
+          forest:
+          lake:
+          ocean:
+          desert:
+          air:
+
+    SpeciesEnum:
+        description: 
+          The species of micro organisms collected in the sample.
+        reachable_from:
+          source_ontology: obo:ncbitaxon
+          source_nodes:
+            - NCBITaxon:131567  # cellular organism, maybe we constrain further to Bacteria
+          include_self: false
+          relationship_types:
+            - rdfs:subClassOf
+
+
